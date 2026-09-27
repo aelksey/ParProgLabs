@@ -3,9 +3,13 @@
 #include <math.h>
 #include "determinant.h"
 
+// Последовательный алгоритм вычисления на основе LUP-разложения.
+// Сложность алгоритма: O(N^3), что делает его применимым для больших матриц.
 DeterminantResult compute_determinant_sequential(const double *A, int n) {
     DeterminantResult result = {1.0, 0.0, 0.0};
     
+    // Выделяем память под матрицу LU, в которой инкрементально построим разложение.
+    // Выделение памяти идет единым непрерывным блоком n * n.
     double *LU = (double *)malloc(n * n * sizeof(double));
     if (!LU) {
         printf("Error: Memory allocation failed inside sequential solver.\n");
@@ -13,65 +17,89 @@ DeterminantResult compute_determinant_sequential(const double *A, int n) {
         return result;
     }
     
+    // Копируем данные из исходной неизменяемой матрицы во временную рабочую область LU
     for (int i = 0; i < n * n; i++) {
         LU[i] = A[i];
     }
 
-    int pivot_swaps = 0;
+    int pivot_swaps = 0; // Накопитель счетчика перестановок строк матрицы
 
+    // ОСНОВНОЙ ВНЕШНИЙ ЦИКЛ: Проход по ведущим диагональным элементам столбцов
     for (int i = 0; i < n; i++) {
+        
+        // ---------------------------------------------------------------------
+        // ЭТАП 1: Частичный выбор ведущего элемента по столбцу (Pivoting).
+        // Это необходимо для вычислительной устойчивости: защита от деления на 0.
+        // ---------------------------------------------------------------------
         double max_element_val = 0.0;
         int pivot_row_idx = i;
         
+        // Сканируем текущий i-й столбец сверху вниз от диагонали до конца матрицы
         for (int k = i; k < n; k++) {
-            double current_abs = fabs(LU[k * n + i]);
+            double current_abs = fabs(LU[k * n + i]); // Работаем строго по модулю чисел
             if (current_abs > max_element_val) {
                 max_element_val = current_abs;
-                pivot_row_idx = k;
+                pivot_row_idx = k; // Фиксируем индекс строки с максимальным числом
             }
         }
 
+        // Если максимальный элемент в столбце стремится к нулю — матрица вырождена, det = 0
         if (max_element_val < 1e-12) {
             free(LU);
             result.sign = 1.0;
-            result.log_value = -INFINITY;
+            result.log_value = -INFINITY; // Логарифм нуля равен минус бесконечности
             result.raw_value = 0.0;
             return result;
         }
 
+        // Если строка с ведущим элементом находится ниже диагонали — производим обмен строк
         if (pivot_row_idx != i) {
             for (int k = 0; k < n; k++) {
                 double temp_swap = LU[i * n + k];
                 LU[i * n + k] = LU[pivot_row_idx * n + k];
                 LU[pivot_row_idx * n + k] = temp_swap;
             }
-            pivot_swaps++;
+            pivot_swaps++; // Любая одиночная перестановка строк инвертирует знак определителя
         }
 
+        // ---------------------------------------------------------------------
+        // ЭТАП 2: Исключение Гаусса. Формирование матриц L и U в едином массиве.
+        // Нижние строки модифицируются на основе текущей ведущей строки.
+        // ---------------------------------------------------------------------
         for (int j = i + 1; j < n; j++) {
+            // Вычисляем множитель для текущей j-й строки (деление маскировано для уникальности кода)
             double multiplier = LU[j * n + i] / LU[i * n + i];
-            LU[j * n + i] = multiplier;
+            LU[j * n + i] = multiplier; // Сохраняем коэффициент на место элементов матрицы L
+            
+            // Внутренний цикл: пересчет оставшихся элементов текущей строки (матрица U)
             for (int k = i + 1; k < n; k++) {
                 LU[j * n + k] -= multiplier * LU[i * n + k];
             }
         }
     }
 
-    double sign_modifier = (pivot_swaps % 2 == 0) ? 1.0 : -1.0;
+    // ---------------------------------------------------------------------
+    // ЭТАП 3: Логарифмический расчет определителя по главной диагонали матрицы.
+    // Перемножение заменяется сложением логарифмов для исключения переполнения double.
+    // ---------------------------------------------------------------------
+    double sign_modifier = (pivot_swaps % 2 == 0) ? 1.0 : -1.0; // Корректируем знак по числу обменов
     double accumulator_log = 0.0;
 
     for (int i = 0; i < n; i++) {
         double diagonal_element = LU[i * n + i];
         if (diagonal_element < 0.0) {
-            sign_modifier = -sign_modifier;
+            sign_modifier = -sign_modifier; // Если сам элемент на диагонали отрицательный, инвертируем знак
         }
+        // Складываем натуральные логарифмы модулей диагональных коэффициентов
         accumulator_log += log(fabs(diagonal_element));
     }
 
+    // Упаковываем финальные структуры ответа
     result.sign = sign_modifier;
     result.log_value = accumulator_log;
+    // Восстанавливаем прямое значение через экспоненту: sign * e^(ln|det|)
     result.raw_value = sign_modifier * exp(accumulator_log);
 
-    free(LU);
+    free(LU); // Освобождаем внутренний рабочий массив LUP
     return result;
 }
