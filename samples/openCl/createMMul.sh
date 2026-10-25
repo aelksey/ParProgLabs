@@ -1,0 +1,1 @@
+gcc -I/usr/local/cuda/include/ -L/usr/local/cuda/lib64/ -lOpenCL matrixMul.c -o matrixMul

@@ -1,0 +1,29 @@
+=== MULTI-CRITERIA ANALYSIS REPORT ===
+Source file: matrix_6_2500x2500i.txt (2500x2500)
+Global Minimum Sum: 179
+Total submatrices matching minimum sum (CPU): 1
+Total submatrices matching minimum sum (GPU): 1
+
+=== LAST SEQUENTIAL TRIANGLE MATCH ({618:1591}) ===
+4 
+1 1 
+3 4 1 
+2 1 1 6 
+2 7 6 3 6 
+4 1 3 1 3 3 
+2 3 1 1 6 4 2 
+8 3 3 1 6 3 2 7 
+1 1 3 1 1 4 6 2 2 
+9 2 9 1 5 8 1 3 4 1 
+
+=== LAST PARALLEL TRIANGLE MATCH ({618:1591}) ===
+4 
+1 1 
+3 4 1 
+2 1 1 6 
+2 7 6 3 6 
+4 1 3 1 3 3 
+2 3 1 1 6 4 2 
+8 3 3 1 6 3 2 7 
+1 1 3 1 1 4 6 2 2 
+9 2 9 1 5 8 1 3 4 1 
